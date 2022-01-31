@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "hardhat/console.sol";
 
@@ -13,25 +12,19 @@ contract NFTStaking is ERC1155Holder {
 
     uint256 public totalStaked;
     uint256 public rewardAmount;
-    uint256 public startTime;
-    uint256 rate;
-
+    uint256 stakeId = 1;
     struct stakingInfo {
         address user;
+        uint256 startTime;
         uint256 stakingBalance;
-        uint256 stakingDuration;
         uint256 tokenId;
-        bool hasStaked;
     }
 
     //mapping of user data
-    mapping(address => stakingInfo) public stakerData;
+    mapping(uint256 => stakingInfo) public stakerData;
 
-    address[] public stakers;
-
-    event Staked(address user, uint256 stakeAmount, uint256 duration);
+    event Staked(address user, uint256 stakeAmount);
     event Unstaked(address user, uint256 tokenId);
-    event RewardPoint(uint256 rewardbalance);
 
     constructor(IERC20 rewardTokens_, IERC1155 stakeTokens_) {
         stakeTokens = stakeTokens_;
@@ -39,37 +32,25 @@ contract NFTStaking is ERC1155Holder {
     }
 
     function stake(
-        address user,
-        uint256 tokenId,
-        uint256 stakeAmount,
-        uint256 duration
+        address _user,
+        uint256 _tokenId,
+        uint256 _stakeAmount
     ) external {
-        stakingInfo storage stake_ = stakerData[user];
-        require(user != address(0), "zero address");
+        stakingInfo storage stake_ = stakerData[stakeId];
+        require(_user != address(0), "zero address");
 
-        startTime = block.timestamp;
-        stake_.user = user;
-        stake_.stakingBalance = stakeAmount;
-        stake_.tokenId = tokenId;
-        stake_.stakingDuration = duration;
-        if (!stake_.hasStaked) {
-            stakers.push(user);
-        }
-
-        stake_.hasStaked = true;
-        _stake(
-            stake_.user,
-            stake_.tokenId,
-            stake_.stakingBalance,
-            stake_.stakingDuration
-        );
+        stake_.user = _user;
+        stake_.startTime = block.timestamp;
+        stake_.stakingBalance = _stakeAmount;
+        stake_.tokenId = (_tokenId);
+        stakeId++;
+        _stake(_user, _tokenId, stake_.stakingBalance);
     }
 
     function _stake(
         address _user,
         uint256 _tokenId,
-        uint256 balance,
-        uint256 stakeDuration
+        uint256 balance
     ) public {
         require(balance > 0, "cannot stake");
 
@@ -83,51 +64,36 @@ contract NFTStaking is ERC1155Holder {
 
         totalStaked += balance;
 
-        emit Staked(_user, balance, stakeDuration);
+        emit Staked(_user, balance);
     }
 
-    function unstake(uint256 tokenId) external {
-        stakingInfo storage stake_ = stakerData[msg.sender];
-
-        uint256 balance = stake_.stakingBalance;
-        //   console.log(balance);
-        _unstake(balance, tokenId);
-    }
-
-    function _unstake(uint256 stakeAmount, uint256 tokenId) public {
-        require(stakeAmount > 0, "amount has to be more than 0");
-        stakingInfo storage stake_ = stakerData[msg.sender];
-
-        uint256 stakeDuration = stake_.stakingDuration;
-
-        //console.log(stakeTokens.balanceOf(msg.sender, 3));
-
+    function unstake(uint256 _stakeId) external {
+        stakingInfo storage stake_ = stakerData[_stakeId];
+        require(stake_.stakingBalance > 0, "amount has to be more than 0");
+        require(stake_.user == msg.sender, "User staking id is different");
+        uint256 stakeDuration = block.timestamp - stake_.startTime;
+        uint256 stakeAmount = stake_.stakingBalance;
         stakeTokens.safeTransferFrom(
             address(this),
             msg.sender,
-            tokenId,
+            stake_.tokenId,
             stakeAmount,
             ""
         );
-        if (30 days <= stakeDuration && stakeDuration < 180 days) {
-            rate = 5;
-            rewardAmount = calculateReward(rate, stakeAmount, stakeDuration);
-            // console.log(rate, rewardAmount);
-        } else if (180 days <= stakeDuration && stakeDuration < 365 days) {
-            rate = 10;
-            rewardAmount = calculateReward(rate, stakeAmount, stakeDuration);
-            // console.log(rate, rewardAmount);
+
+        if (stakeDuration >= 30 days && stakeDuration < 180 days) {
+            rewardAmount = calculateReward(5, stakeAmount, 30 days);
+        } else if (stakeDuration >= 180 days && stakeDuration < 365 days) {
+            rewardAmount = calculateReward(10, stakeAmount, 180 days);
         } else if (stakeDuration >= 365 days) {
-            rate = 15;
-            rewardAmount = calculateReward(rate, stakeAmount, stakeDuration);
-            // console.log(rate, rewardAmount);
+            rewardAmount = calculateReward(15, stakeAmount, 365 days);
         }
         rewardTokens.transfer(msg.sender, rewardAmount);
 
         totalStaked -= stakeAmount;
         stake_.stakingBalance -= stakeAmount;
-
-        emit Unstaked(msg.sender, tokenId);
+        delete stakerData[_stakeId];
+        emit Unstaked(msg.sender, stake_.tokenId);
     }
 
     function calculateReward(
@@ -135,14 +101,9 @@ contract NFTStaking is ERC1155Holder {
         uint256 stakeAmount,
         uint256 stakePeriod
     ) internal returns (uint256 amountReward) {
-        require(
-            (block.timestamp - startTime) >= stakePeriod,
-            "cuurent time is less than staking duration"
-        );
         rewardAmount =
             (interestaRate * stakePeriod * stakeAmount) /
             (100 * 365 days);
-        emit RewardPoint(rewardAmount);
         return rewardAmount;
     }
 }
