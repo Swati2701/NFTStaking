@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import "hardhat/console.sol";
 
 contract NFTStaking is ERC1155Holder {
     IERC20 private rewardTokens;
@@ -13,7 +12,7 @@ contract NFTStaking is ERC1155Holder {
     uint256 public totalStaked;
     uint256 public rewardAmount;
     uint256 stakeId = 1;
-    struct stakingInfo {
+    struct StakingInfo {
         address user;
         uint256 startTime;
         uint256 stakingBalance;
@@ -21,7 +20,7 @@ contract NFTStaking is ERC1155Holder {
     }
 
     //mapping of user data
-    mapping(uint256 => stakingInfo) public stakerData;
+    mapping(uint256 => StakingInfo) public stakerData;
 
     event Staked(address user, uint256 stakeAmount);
     event Unstaked(address user, uint256 tokenId);
@@ -32,7 +31,7 @@ contract NFTStaking is ERC1155Holder {
     }
 
     function stake(uint256 _tokenId, uint256 _stakeAmount) external {
-        stakingInfo storage stake_ = stakerData[stakeId];
+        StakingInfo storage stake_ = stakerData[stakeId];
         require(msg.sender != address(0), "zero address");
 
         stake_.user = msg.sender;
@@ -65,7 +64,7 @@ contract NFTStaking is ERC1155Holder {
     }
 
     function unstake(uint256 _stakeId) external {
-        stakingInfo storage stake_ = stakerData[_stakeId];
+        StakingInfo storage stake_ = stakerData[_stakeId];
         require(stake_.stakingBalance > 0, "amount has to be more than 0");
         require(stake_.user == msg.sender, "User staking id is different");
         uint256 stakeDuration = block.timestamp - stake_.startTime;

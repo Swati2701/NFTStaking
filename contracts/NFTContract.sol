@@ -5,12 +5,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 contract NFTContract is ERC1155 {
-    uint256 public constant data1 = 1;
-    uint256 public constant data2 = 2;
+    uint256 public constant DATA1 = 1;
+    uint256 public constant DATA2 = 2;
 
-    uint256[] tokenId = [data1, data2];
-    uint256 public tokenIds = 3;
-    string _uri;
+    uint256[] tokenId = [DATA1, DATA2];
+    uint256 public tokenIds = 2;
+
+    //   string _uri;
 
     constructor()
         ERC1155(
@@ -23,8 +24,9 @@ contract NFTContract is ERC1155 {
         uint256[] memory initalBatchSupply,
         string memory newuri
     ) public {
-        _mintBatch(to, tokenId, initalBatchSupply, "");
         _setURI(newuri);
+
+        _mintBatch(to, tokenId, initalBatchSupply, "");
     }
 
     function mintToken(
@@ -32,8 +34,8 @@ contract NFTContract is ERC1155 {
         uint256 initalSupply,
         string memory newuri
     ) public {
-        _mint(to, tokenIds, initalSupply, "");
         tokenIds++;
         _setURI(newuri);
+        _mint(to, tokenIds, initalSupply, "");
     }
 }
