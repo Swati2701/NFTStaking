@@ -52,7 +52,7 @@ describe('NFT Contract', () => {
 			// 		nftStaking.address
 			// 	)
 			// )
-			await nftStaking.stake(addr1.address, 3, 1000 * 10 ** 9)
+			await nftStaking.connect(addr1).stake(3, 1000 * 10 ** 9)
 
 			let amount = BigNumber.from(1000).mul(BigNumber.from(10).pow(9))
 			await nftStaking.onERC1155Received(
@@ -70,18 +70,18 @@ describe('NFT Contract', () => {
 			).to.be.equal('1000000000000')
 		})
 		it('amount is zero', async () => {
-			await expect(nftStaking.stake(addr1.address, 1, 0)).to.be.reverted
+			await expect(nftStaking.connect(addr1).stake(1, 0)).to.be.reverted
 		})
 
-		it('zero address', async () => {
-			await expect(
-				nftStaking.stake(
-					'0x0000000000000000000000000000000000000000',
-					1,
-					1000 * 10 ** 9
-				)
-			).to.be.revertedWith('zero address')
-		})
+		// it('zero address', async () => {
+		// 	await expect(
+		// 		nftStaking.stake(
+		// 			'0x0000000000000000000000000000000000000000',
+		// 			1,
+		// 			1000 * 10 ** 9
+		// 		)
+		// 	).to.be.revertedWith('zero address')
+		// })
 
 		it('stake more tokens', async () => {
 			await nftContract.mintToken(addr1.address, initalSupply, '')
@@ -89,7 +89,7 @@ describe('NFT Contract', () => {
 			await nftContract
 				.connect(addr1)
 				.setApprovalForAll(nftStaking.address, true)
-			await nftStaking.stake(addr1.address, 3, 1000 * 10 ** 9)
+			await nftStaking.connect(addr1).stake(3, 1000 * 10 ** 9)
 
 			let amount = BigNumber.from(1000).mul(BigNumber.from(10).pow(9))
 			await nftStaking.onERC1155Received(
@@ -105,7 +105,7 @@ describe('NFT Contract', () => {
 			await nftContract
 				.connect(addr2)
 				.setApprovalForAll(nftStaking.address, true)
-			await nftStaking.stake(addr2.address, 4, 25 * 10 ** 9)
+			await nftStaking.connect(addr2).stake(4, 25 * 10 ** 9)
 			amount = BigNumber.from(25).mul(BigNumber.from(10).pow(9))
 			await nftStaking.onERC1155Received(
 				nftStaking.address,
@@ -137,7 +137,7 @@ describe('NFT Contract', () => {
 				.connect(addr1)
 				.setApprovalForAll(nftStaking.address, true)
 
-			await nftStaking.stake(addr1.address, 3, amount)
+			await nftStaking.connect(addr1).stake(3, amount)
 
 			await nftStaking.onERC1155Received(
 				nftStaking.address,
@@ -158,7 +158,7 @@ describe('NFT Contract', () => {
 				.connect(addr1)
 				.setApprovalForAll(nftStaking.address, true)
 
-			await nftStaking.stake(addr1.address, 3, amount)
+			await nftStaking.connect(addr1).stake(3, amount)
 
 			await nftStaking.onERC1155Received(
 				nftStaking.address,
@@ -190,7 +190,7 @@ describe('NFT Contract', () => {
 				.connect(addr1)
 				.setApprovalForAll(nftStaking.address, true)
 
-			await nftStaking.stake(addr1.address, 3, amount)
+			await nftStaking.connect(addr1).stake(3, amount)
 
 			await nftStaking.onERC1155Received(
 				nftStaking.address,
@@ -222,7 +222,7 @@ describe('NFT Contract', () => {
 				.connect(addr1)
 				.setApprovalForAll(nftStaking.address, true)
 
-			await nftStaking.stake(addr1.address, 3, amount)
+			await nftStaking.connect(addr1).stake(3, amount)
 			//	await nftStaking.stake(addr1.address, 3, 20 * 10 ** 18)
 			await nftStaking.onERC1155Received(
 				nftStaking.address,
@@ -246,13 +246,15 @@ describe('NFT Contract', () => {
 			).to.be.equal(rewardPoint.toString())
 		})
 
-		it('unstake more tokens at different time', async () => {
+		it('unstake more tokens at different time with different address', async () => {
 			await nftContract.mintToken(addr1.address, initalSupply, '')
 			await nftContract.balanceOf(addr1.address, 3)
 			await nftContract
 				.connect(addr1)
 				.setApprovalForAll(nftStaking.address, true)
-			await nftStaking.stake(addr1.address, 3, 1000 * 10 ** 9)
+			await nftStaking.connect(addr1).stake(3, 1000 * 10 ** 9)
+
+			//console.log(await nftStaking.stakerData)
 
 			let amount = BigNumber.from(1000).mul(BigNumber.from(10).pow(9))
 			await nftStaking.onERC1155Received(
@@ -268,16 +270,15 @@ describe('NFT Contract', () => {
 			await nftContract
 				.connect(addr2)
 				.setApprovalForAll(nftStaking.address, true)
-			await nftStaking.stake(addr2.address, 4, 25 * 10 ** 9)
+			await nftStaking.connect(addr2).stake(4, 25 * 10 ** 9)
 			amount = BigNumber.from(25).mul(BigNumber.from(10).pow(9))
 			await nftStaking.onERC1155Received(
 				nftStaking.address,
-				addr1.address,
-				3,
+				addr2.address,
+				4,
 				amount,
 				'0x00'
 			)
-
 			let stakeAmount = await nftStaking.totalStaked()
 			expect(stakeAmount.toString()).to.be.equal('1025000000000')
 
@@ -295,10 +296,10 @@ describe('NFT Contract', () => {
 			await network.provider.send('evm_increaseTime', [stakeTime])
 			await network.provider.send('evm_mine')
 
-			await nftStaking.connect(addr1).unstake(1)
+			await nftStaking.connect(addr2).unstake(2)
 			let rewardPoint = await nftStaking.rewardAmount()
 			expect(
-				(await myToken.balanceOf(addr1.address)).toString()
+				(await myToken.balanceOf(addr2.address)).toString()
 			).to.be.equal(rewardPoint.toString())
 
 			stakeTime = 31 * 24 * 60 * 60
@@ -306,12 +307,72 @@ describe('NFT Contract', () => {
 
 			await network.provider.send('evm_increaseTime', [stakeTime])
 			await network.provider.send('evm_mine')
-			await nftStaking.connect(addr2).unstake(2)
+			await nftStaking.connect(addr1).unstake(1)
 
 			rewardPoint = await nftStaking.rewardAmount()
 			expect(
-				(await myToken.balanceOf(addr2.address)).toString()
+				(await myToken.balanceOf(addr1.address)).toString()
 			).to.be.equal(rewardPoint.toString())
+		})
+
+		it('unstake more tokens with same address', async () => {
+			await nftContract.mintToken(addr1.address, initalSupply, '')
+			await nftContract.balanceOf(addr1.address, 3)
+			await nftContract
+				.connect(addr1)
+				.setApprovalForAll(nftStaking.address, true)
+			await nftStaking.connect(addr1).stake(3, 1000 * 10 ** 9)
+
+			//console.log(await nftStaking.stakerData)
+
+			let amount = BigNumber.from(1000).mul(BigNumber.from(10).pow(9))
+			await nftStaking.onERC1155Received(
+				nftStaking.address,
+				addr1.address,
+				3,
+				amount,
+				'0x00'
+			)
+
+			await nftContract.mintToken(addr1.address, initalSupply, '')
+			await nftContract.balanceOf(addr1.address, 4)
+			await nftContract
+				.connect(addr1)
+				.setApprovalForAll(nftStaking.address, true)
+
+			await nftStaking.connect(addr1).stake(4, 25 * 10 ** 9)
+			let stakeAmount = await nftStaking.totalStaked()
+			expect(stakeAmount.toString()).to.be.equal('1025000000000')
+
+			expect(
+				(await nftContract.balanceOf(nftStaking.address, 3)).toString()
+			).to.be.equal('1000000000000')
+
+			expect(
+				(await nftContract.balanceOf(nftStaking.address, 4)).toString()
+			).to.be.equal('25000000000')
+
+			stakeTime = 31 * 24 * 60 * 60
+			await ethers.provider.getBlock().timestamp
+
+			await network.provider.send('evm_increaseTime', [stakeTime])
+			await network.provider.send('evm_mine')
+
+			await nftStaking.connect(addr1).unstake(1)
+
+			let rewardPoint = await nftStaking.rewardAmount()
+			//console.log(rewardPoint.toString())
+			expect(
+				(await myToken.balanceOf(addr1.address)).toString()
+			).to.be.equal(rewardPoint.toString())
+
+			await nftStaking.connect(addr1).unstake(2)
+
+			// rewardPoint = await nftStaking.rewardAmount()
+			// console.log(rewardPoint.toString())
+			// expect(
+			// 	(await myToken.balanceOf(addr1.address)).toString()
+			// ).to.be.equal(rewardPoint.toString())
 		})
 	})
 })

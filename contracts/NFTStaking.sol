@@ -31,20 +31,17 @@ contract NFTStaking is ERC1155Holder {
         rewardTokens = rewardTokens_;
     }
 
-    function stake(
-        address _user,
-        uint256 _tokenId,
-        uint256 _stakeAmount
-    ) external {
+    function stake(uint256 _tokenId, uint256 _stakeAmount) external {
         stakingInfo storage stake_ = stakerData[stakeId];
-        require(_user != address(0), "zero address");
+        require(msg.sender != address(0), "zero address");
 
-        stake_.user = _user;
+        stake_.user = msg.sender;
         stake_.startTime = block.timestamp;
         stake_.stakingBalance = _stakeAmount;
         stake_.tokenId = (_tokenId);
         stakeId++;
-        _stake(_user, _tokenId, stake_.stakingBalance);
+
+        _stake(msg.sender, _tokenId, stake_.stakingBalance);
     }
 
     function _stake(
